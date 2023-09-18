@@ -102,7 +102,7 @@ if [[ "$response" =~ ^(yes|y)$ ]]; then
    #### Terraform
    token=`cat $CURRENT_DIR/.linode_token`
    cd $CURRENT_DIR/terraform
-   echo "token = $token/" > terraform.tfvars
+   echo "token = $token" > terraform.tfvars
    echo "pass = $password" >> terraform.tfvars
    cd $CURRENT_DIR
 fi
