@@ -1,0 +1,18 @@
+killall kubectl
+mypwd=`pwd`
+export KUBECONFIG=$mypwd/../k8s/admin_master-2.conf
+
+export CONSUL_HTTP_SSL_VERIFY=false
+export CONSUL_HTTP_ADDR=127.0.0.1:8501
+export CONSUL_HTTP_SSL=true
+export CONSUL_HTTP_TOKEN=`cat $mypwd/../k8s/dallas_consul_token.txt`
+# export CONSUL_HTTP_TOKEN=$(kubectl --namespace=consul get secrets consul-bootstrap-acl-token -o go-template='{{.data.token|base64decode}}')
+
+kubectl port-forward service/consul-server --namespace consul 8501:8501 &
+
+kubectl port-forward service/consul-server --namespace consul 8600:8600 &
+
+kubectl port-forward service/consul-ui --namespace consul 4343:443 &
+
+# Pointing to the argoCD on master-1
+kubectl --kubeconfig=$mypwd/../k8s/admin_master-1.conf port-forward svc/argocd-server --namespace argocd 8080:443 &

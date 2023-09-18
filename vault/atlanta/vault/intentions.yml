@@ -1,0 +1,24 @@
+---
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceIntentions
+metadata:
+  name: vault0-atlanta-8201-allows
+spec:
+  destination:
+    name: vault0-atlanta-8201
+  sources:
+   - name: vault1-atlanta-8201
+     action: allow
+
+---
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceIntentions
+metadata:
+  name: vault1-atlanta-8201-allows
+spec:
+  destination:
+    name: vault1-atlanta-8201
+  sources:
+   - name: vault0-atlanta-8201
+     action: allow
+

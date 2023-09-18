@@ -1,0 +1,125 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: vault-demo
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name:  vault-demo
+spec:
+  selector:
+    app: vault-demo
+  ports:
+    - port: 1337
+      targetPort: 1337
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: role-tokenreview-binding
+  namespace: default
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:auth-delegator
+subjects:
+- kind: ServiceAccount
+  name: vault-demo
+  namespace: default
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vault-demo
+  labels:
+    app: vault-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vault-demo
+  template:
+    metadata:
+      annotations:
+        # https://developer.hashicorp.com/vault/docs/platform/k8s/injector/annotations
+        vault.hashicorp.com/agent-inject: "true"
+        # for prod we would want to have the ca-cert
+        # vault.hashicorp.com/ca-cert: #  - path of the CA certificate used to verify Vault's TLS.
+        # need to disable TLS verification.
+        vault.hashicorp.com/auth-min-backoff: "10s"
+        vault.hashicorp.com/auth-max-backoff: "20s"
+        vault.hashicorp.com/tls-skip-verify : "true"
+        # This is the
+        vault.hashicorp.com/role: "vault-demo"
+        # This puts the secret into the container as a file at /vault/secrets/config
+        vault.hashicorp.com/agent-inject-secret-config: "kv/secret/vaultdemo/config"
+
+        # this is good got certs files.
+        # this writes the key as filename /vault/secrets/ with the content of the value
+        # vault.hashicorp.com/agent-inject-template-config: |
+        #   {{- with secret "kv/secret/vaultdemo/config" -}}
+        #     {{- range $k, $v := .Data -}}
+        #       {{- $path := printf "/vault/secrets/%s" $k }}
+        #       {{- $v | writeToFile $path "vault" "vault" "0600" }}
+        #     {{- end -}}
+        #   {{- end -}}
+
+        # This writes to a file at /vault/secrets/config to be executed as a script.
+        # {{- with secret "kv/secret/vaultdemo/config" -}}
+        #   {{- range $k, $v := .Data -}}
+        #     echo "{{$v}}" > "/vault/secrets/{{$k}}";
+        #   {{- end -}}
+        # {{- end -}}
+        # vault.hashicorp.com/agent-inject-command-config: "cd /vault/secrets; sh config"
+
+        # This writes to a file at /vault/secrets/config in ini format
+        # vault.hashicorp.com/agent-inject-template-config: |
+        #   {{ with secret "kv/secret/vaultdemo/config" }}
+        #     [DEFAULT]
+        #     LogLevel = DEBUG
+        #     [DATABASE]
+        #     Address=127.0.0.1
+        #     Port=3306
+        #     User={{ .Data.username }}
+        #     Password={{ .Data.password }}
+        #     Database=app
+        #   {{ end }}
+
+        # example of using a template to write a file python dictionary with a loop
+        # vault.hashicorp.com/agent-inject-template-config: |
+        #   {{- with secret "kv/secret/vaultdemo/config" -}}
+        #     {{- $secret_data := "creds = { " -}}
+        #     {{- range $k, $v := .Data -}}
+        #       {{- $secret_data = printf "%s '%s':'%s'," $secret_data $k $v -}}
+        #       {{- end -}}
+        #     {{- $secret_data = printf "%s }" $secret_data -}}
+        #     {{- $secret_data | writeToFile "/vault/secrets/config.py" "vault" "vault" "0600" -}}
+        #   {{- end -}}
+
+        # example of using a template to write a file python dictionary knowing the keys
+        vault.hashicorp.com/agent-inject-template-config: |
+          {{- with secret "kv/secret/vaultdemo/config" -}}
+            {{- $secret_data := printf "creds = { 'username':'%s', 'password':'%s' }" .Data.username .Data.password -}}
+            {{- $secret_data | writeToFile "/vault/secrets/config.py" "vault" "vault" "0600" -}}
+          {{- end -}}
+
+
+        # Consul Connect sidecar injection annotations
+        consul.hashicorp.com/connect-inject: "true"
+        # We disable proxy on the outbound port 8200 so that the vault agent can talk to vault
+        consul.hashicorp.com/transparent-proxy-exclude-outbound-ports : "8200"
+      labels:
+        app: vault-demo
+    spec:
+      serviceAccountName: vault-demo
+      restartPolicy: "Always"
+      containers:
+      - name: vault-demo
+        imagePullPolicy: "Always"
+        image: python
+        command: ["/bin/bash"]
+        args: ["-c", "while true; do echo alive; cat /vault/secrets/config; sleep 120;done"]
+        ports:
+          - containerPort: 1337

@@ -1,0 +1,149 @@
+---
+- name: Setup consul-k8s on Centos.
+  vars_files: vars.yml
+  gather_facts: false
+  hosts: all
+
+  tasks:
+
+  - name: check if file exists
+    stat:
+      path: ../scripts/vault_cert/crt
+    register: crt_file
+    delegate_to: localhost
+
+  # generate a cert and key for vault delegation local
+  - name: generate a cert and key for vault delegation local if crt file does not exist
+    command:
+      cmd: bash newcsr.sh
+    args:
+      chdir: ../scripts/vault_cert
+    delegate_to: localhost
+    connection: local
+    when: not crt_file.stat.exists
+
+  - name: run mk_vault-tls-secrets.py
+    command:
+      cmd: python mk_vault-tls-secrets.py ../../vault/{{ region }}/vault/vault-tls-secrets.yml
+    args:
+      chdir: ../scripts/vault_cert
+    delegate_to: localhost
+    connection: local
+
+  - name: copy consul config dir
+    copy:
+      src: ../vault/{{ region }}/ # dont forget the trailing slash here
+      dest: /root/vault
+
+  - name: apply consul intentions for vault
+    command: kubectl apply -f /root/vault/vault/intentions.yml
+
+  - name: apply consul intentions for etcd
+    command: kubectl apply -f /root/vault/etcd/intentions.yml
+
+  - name: apply consul exports for etcd
+    command: kubectl apply -f /root/vault/etcd/ExportedServices.yml
+
+  - name: apply vault-tls-secret.yml config
+    command: kubectl apply -f /root/vault/vault/vault-tls-secrets.yml
+
+  - name: apply etcd0.yml config
+    command: kubectl apply -f /root/vault/etcd/etcd0.yml
+
+  - name: apply etcd1.yml config
+    command: kubectl apply -f /root/vault/etcd/etcd1.yml
+
+  # - name: apply etcd2.yml config
+  #   command: kubectl apply -f /root/vault/etcd/etcd2.yml
+
+  - name: wait for consul etcd0-atlanta to be ready
+    command: kubectl wait --for=condition=ready pod -l etcd_node=etcd0-atlanta --timeout=300s
+
+  - name: apply vault0.yml config
+    command: kubectl apply -f /root/vault/vault/vault0.yml
+
+  - name: wait for consul vault0-atlanta to be ready
+    command: kubectl wait --for=condition=ready pod -l node-name=vault0-atlanta --timeout=300s
+
+  - name: init the vault
+    command: kubectl exec -it pod/vault0-atlanta -- vault operator init -key-shares=1 -key-threshold=1 -tls-skip-verify
+    register: vault_init_result
+
+  - name: Remove escape codes from command output
+    set_fact:
+      vault_init_result_cleaned_output: "{{ vault_init_result.stdout | regex_replace('\\x1B\\[0m', '') }}"
+
+  - name: Create a file with the vault init result
+    copy:
+      content: "{{ vault_init_result_cleaned_output }}"
+      dest: /root/vault-init.txt
+
+  - name: Synchronize vault init to remote
+    ansible.posix.synchronize:
+      mode: pull
+      src: /root/vault-init.txt
+      dest: ../k8s/vault-init.txt
+
+  - name: get Unseal Key 1 from file /root/vault-init.txt with regex
+    set_fact:
+      vault_unseal_key_1: "{{ vault_init_result_cleaned_output.split('\n')[0] | regex_replace('Unseal Key 1: ', '') }}"
+
+  - name: get "Initial Root Token "from file /root/vault-init.txt with regex
+    set_fact:
+      vault_root_token: "{{ vault_init_result_cleaned_output.split('\n')[2] | regex_replace('Initial Root Token: ', '') }}"
+
+  - name: debug unseal key 1
+    debug:
+      msg: "{{ vault_unseal_key_1 }}"
+
+  - name: debug root token
+    debug:
+      msg: "{{ vault_root_token }}"
+
+  - name: unseal the vault
+    command: kubectl exec -it pod/vault0-atlanta -- vault operator unseal -tls-skip-verify {{ vault_unseal_key_1 }}
+
+  - name: vault login
+    command: kubectl exec -it pod/vault0-atlanta -- vault login -tls-skip-verify {{ vault_root_token }}
+
+  - name: apply vault1.yml config
+    command: kubectl apply -f /root/vault/vault/vault1.yml
+
+  - name: wait for consul vault1-atlanta to be ready
+    command: kubectl wait --for=condition=ready pod -l node-name=vault1-atlanta --timeout=300s
+
+  - name: unseal the vault
+    command: kubectl exec -it pod/vault1-atlanta -- vault operator unseal -tls-skip-verify {{ vault_unseal_key_1 }}
+
+  - name: vault login
+    command: kubectl exec -it pod/vault1-atlanta -- vault login -tls-skip-verify {{ vault_root_token }}
+
+  - name: apply port 8200 service
+    command: kubectl apply -f /root/vault/vault/vault-service.yml
+
+  # NOT WORKING NEED EXTERNET VAULT TO ONSEAL VAULT
+  # MIGHT NEED TO USE A SCRIPT TO DO THIS INSTEAD OF ANSIBLE
+
+  # - name: enable transit secrets engine
+  #   command: kubectl exec -it pod/vault0-atlanta -- vault secrets enable  -tls-skip-verify transit
+
+  # - name: create transit key
+  #   command: kubectl exec -it pod/vault0-atlanta -- vault write -tls-skip-verify -f transit/keys/autounseal
+
+  # - name: create policy
+  #   command: kubectl exec -it pod/vault0-atlanta -- vault policy write -tls-skip-verify autounseal /root/vault/vault/autounseal-policy.hcl
+
+  # - name: create token
+  #   command: kubectl exec -it pod/vault0-atlanta -- vault token create -tls-skip-verify -orphan -policy="autounseal" -wrap-ttl=120 -period=24h
+  #   register: vault_token_result
+
+  # - name: Create a file with the vault token
+  #   copy:
+  #     content: "{{ vault_token_result.stdout }}"
+  #     dest: /root/vault_unseal_token.txt
+
+  # - name: Synchronize vault token to remote
+  #   ansible.posix.synchronize:
+  #     mode: pull
+  #     src: /root/vault_unseal_token.txt
+  #     dest: ../k8s/vault_unseal_token.txt

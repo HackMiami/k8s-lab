@@ -1,0 +1,17 @@
+---
+- name: Setup k8s worker nodes
+  vars_files: vars.yml
+  gather_facts: false
+  hosts: all
+
+  tasks:
+
+  - name: linode_reboot
+    command:
+      cmd: python3 ../scripts/linode_reboot.py --token {{ linode_token }} --id {{ linodeid }} --reboot --ping --ip {{ ansible_host }}
+    delegate_to: localhost
+    connection: local
+
+  - name: Wait 300 seconds for target connection to become reachable/usable
+    ansible.builtin.wait_for_connection:
+    timeout: 300

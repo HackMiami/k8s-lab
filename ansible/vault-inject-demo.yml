@@ -1,0 +1,36 @@
+---
+- name: Setup consul-k8s on Centos.
+  vars_files: vars.yml
+  gather_facts: false
+  hosts: all
+
+  tasks:
+
+  - name: create a random username and password set_fact
+    set_fact:
+      random_username: "{{ lookup('password', '/dev/null length=8 chars=ascii_letters') }}"
+      random_password: "{{ lookup('password', '/dev/null length=8 chars=ascii_letters') }}"
+
+  - name: create a secret at kv/secret/vaultdemo/config
+    ansible.builtin.shell: |
+      kubectl exec -it vault0-{{ region }} -- vault kv put -tls-skip-verify kv/secret/vaultdemo/config username='{{ random_username }}' password='{{ random_password }}'
+
+  - name: create vault policy for vaultdemo
+    ansible.builtin.shell: |
+      kubectl exec -it vault0-{{ region }} -- vault policy write -tls-skip-verify vaultdemo - <<EOF
+      path "kv/secret/vaultdemo/*" {
+        capabilities = ["read", "list"]
+      }
+      EOF
+
+  - name: create vault auth/kubernetes/role for vault_demo the service account
+    ansible.builtin.shell: |
+      kubectl exec -it vault0-{{ region }} -- vault write -tls-skip-verify auth/kubernetes/role/vault-demo \
+          bound_service_account_names=vault-demo \
+          bound_service_account_namespaces=default \
+          policies=vaultdemo \
+          ttl=24h
+
+  - name: apply the deployment for vault-demo
+    ansible.builtin.shell: |
+      kubectl apply -f /root/vault/vault-injector/demo_deployment.yml

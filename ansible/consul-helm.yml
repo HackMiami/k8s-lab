@@ -1,0 +1,68 @@
+---
+- name: Setup consul-k8s on Centos.
+  vars_files: vars.yml
+  gather_facts: false
+  hosts: all
+
+  tasks:
+
+  - name: add hashicorp repo
+    yum_repository:
+      name: hashicorp
+      description: Hashicorp Stable Repo
+      baseurl: https://rpm.releases.hashicorp.com/RHEL/$releasever/$basearch/stable
+      gpgcheck: yes
+      gpgkey: https://rpm.releases.hashicorp.com/gpg
+      enabled: yes
+
+  - name: add helm repo
+    command: helm repo add hashicorp https://helm.releases.hashicorp.com
+
+  - name: install consul
+    yum:
+      name:
+      - consul
+      state: present
+
+  - name: copy consul config dir
+    copy:
+      src: ../consul/peering/{{ region }}/ # dont forget the trailing slash here
+      dest: /root/consul
+
+  - name: copy consul scripts to root
+    copy:
+      src: ../consul/scripts/
+      dest: /root
+
+  - name: install consul with helm chart
+    command: helm install consul hashicorp/consul --set global.name=consul --create-namespace --namespace consul --values /root/consul/consul-config.yml
+
+  - name: wait for consul server to be ready
+    command: kubectl wait --for=condition=ready pod -l statefulset.kubernetes.io/pod-name=consul-server-0 -n consul --timeout=300s
+
+  - name: wait for consul mesh-gateway to be ready
+    command: kubectl wait --for=condition=ready pod -l component=mesh-gateway -n consul --timeout=300s
+
+  - name: apply mesh config
+    command: kubectl apply -f /root/consul/mesh.yml
+
+  - name: apply proxydefaults configuration
+    command: kubectl apply -f /root/consul/proxydefaults.yml
+
+  - name: Fetch Consul token secret and store it in a file
+    command: kubectl get secrets/consul-bootstrap-acl-token --template="{{ '{{' }} .data.token | base64decode {{ '}}' }}" -n consul
+    register: consul_token_result
+
+  - name: Create a file with the Consul token
+    copy:
+      content: "{{ consul_token_result.stdout }}"
+      dest: /root/consul/consul_token.txt
+
+  - name: Synchronize token to remote
+    ansible.posix.synchronize:
+      mode: pull
+      src: /root/consul/consul_token.txt
+      dest: ../k8s/{{ region }}_consul_token.txt
+
+  - name: patch coredns config map to add consul domain
+    command: python /root/edit_coredns.py

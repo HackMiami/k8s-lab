@@ -1,0 +1,16 @@
+# This needed to be tracked in git with argocd, but it's not needed in the lab.
+
+---
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceIntentions
+metadata:
+  name: to-server
+spec:
+  destination:
+    name: server
+  sources:
+   - name: client
+     action: allow
+     peer: atlanta
+   - name: localclient
+     action: allow

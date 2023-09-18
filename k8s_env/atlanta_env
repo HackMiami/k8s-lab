@@ -1,0 +1,28 @@
+killall kubectl
+mypwd=`pwd`
+export KUBECONFIG=$mypwd/../k8s/admin_master-1.conf
+
+export CONSUL_HTTP_SSL_VERIFY=false
+export CONSUL_HTTP_ADDR=127.0.0.1:8501
+export CONSUL_HTTP_SSL=true
+export CONSUL_HTTP_TOKEN=`cat $mypwd/../k8s/atlanta_consul_token.txt`
+# export CONSUL_HTTP_TOKEN=$(kubectl --namespace=consul get secrets consul-bootstrap-acl-token -o go-template='{{.data.token|base64decode}}')
+
+# consul port forward localhost:8501 to consul-server:8501
+kubectl port-forward service/consul-server --namespace consul 8501:8501 &
+
+# consul port forward localhost:8600 to consul-server:8600
+kubectl port-forward service/consul-server --namespace consul 8600:8600 &
+
+# consul port forward localhost:4343 to consul-ui:443
+kubectl port-forward service/consul-ui --namespace consul 4343:443 &
+
+# argocd port forward localhost:8080 to argocd:443
+kubectl port-forward svc/argocd-server --namespace argocd 8080:443 &
+
+# vault port forward localhost:8200 to vault:8200
+kubectl port-forward svc/vault 8200:8200 &
+
+# jenkins port forward localhost:8090 to jenkins:8080
+kubectl port-forward svc/jenkins 8090:8080 &
+

@@ -1,0 +1,52 @@
+---
+- name: Setup k8s master on Centos 9.
+  vars_files: vars.yml
+  gather_facts: false
+  hosts: all
+
+  tasks:
+
+  - name: Run kubeadm init
+    command: kubeadm init --pod-network-cidr=10.244.0.0/16 --control-plane-endpoint {{ ansible_host }}:6443 --upload-certs
+    register: kubeadm_output
+
+  - name: Copy kubeadm output to remote system
+    copy:
+      content: "{{ kubeadm_output.stdout }}"
+      dest: /root/kubeadm_output_{{ host_name }}.txt
+
+  - name: Synchronize kubeadm_output_.
+    ansible.posix.synchronize:
+      mode: pull
+      src: /root/kubeadm_output_{{ host_name }}.txt
+      dest: ../k8s/kubeadm_output_{{ host_name }}.txt
+
+  - name: save join command to file
+    shell: kubeadm token create --print-join-command > /root/{{ region }}_join_command.sh
+
+  - name: Synchronize join command
+    ansible.posix.synchronize:
+      mode: pull
+      src: /root/{{ region }}_join_command.sh
+      dest: ../k8s/{{ region }}_join_command.sh
+
+  - name: Synchronize KUBECONFIG.
+    ansible.posix.synchronize:
+      mode: pull
+      src: /etc/kubernetes/admin.conf
+      dest: ../k8s/admin_{{ host_name }}.conf
+
+  - name: mkdir .kube in root home directory
+    file:
+      path: /root/.kube
+      state: directory
+
+  - name: Copy admin.conf to root home directory
+    copy:
+      src: /etc/kubernetes/admin.conf
+      dest: /root/.kube/config
+      remote_src: true
+
+  - name: apply flannel
+    command: kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+

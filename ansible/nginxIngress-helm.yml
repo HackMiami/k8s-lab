@@ -1,0 +1,18 @@
+---
+- name: Setup consul-k8s on Centos.
+  vars_files: vars.yml
+  gather_facts: false
+  hosts: all
+
+  tasks:
+
+  - name: add helm openebs repo
+    command: helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+
+  - name: install openebs with helm chart
+    command: helm install nginx-ingress ingress-nginx/ingress-nginx --create-namespace --namespace nginx-ingress \
+              --set controller.service.type=NodePort \
+              --set controller.service.ports.http=80 \
+              --set controller.service.ports.https=443 \
+              --set controller.service.nodePorts.http=30080 \
+              --set controller.service.nodePorts.https=30443

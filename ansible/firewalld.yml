@@ -1,0 +1,247 @@
+
+# Get my IP
+- name: Get my IP
+  ansible.builtin.shell:
+    cmd: curl https://ifconfig.io
+  register: my_ip
+  delegate_to: localhost
+
+# print my IP
+- name: Print my IP
+  ansible.builtin.debug:
+    msg: "{{ my_ip.stdout_lines[0] }}"
+
+- name: remove ssh from public zone
+  ansible.posix.firewalld:
+    service: ssh
+    zone: public
+    permanent: true
+    state: disabled
+
+- name: remove dhcpd-client from public zone
+  ansible.posix.firewalld:
+    service: dhcpv6-client
+    permanent: true
+    state: disabled
+
+- name: remove cockpit from public zone
+  ansible.posix.firewalld:
+    service: cockpit
+    zone: public
+    permanent: true
+    state: disabled
+
+- name: Make zone of k8s_nodes
+  ansible.posix.firewalld:
+    zone: k8s_nodes
+    state: present
+    permanent: true
+
+- name: Make zone of k8s_nodes
+  ansible.posix.firewalld:
+    zone: public
+    state: enabled
+    masquerade: true
+    permanent: true
+
+- name: Make zone of k8s_nodes
+  ansible.posix.firewalld:
+    zone: k8s_nodes
+    state: enabled
+    masquerade: true
+    permanent: true
+
+- name: Make zone of k8s_nodes
+  ansible.posix.firewalld:
+    zone: admin_access
+    state: present
+    permanent: true
+
+- name: Make zone of ssh_access
+  ansible.posix.firewalld:
+    zone: admin_access
+    target: ACCEPT
+    state: present
+    permanent: true
+
+- name: allow ssh_access to 22/tcp
+  ansible.posix.firewalld:
+    zone: admin_access
+    service: ssh
+    permanent: true
+    state: enabled
+
+- name: Allow k8s_nodes to 6443/tcp - Kubernetes API
+  ansible.posix.firewalld:
+    zone: admin_access
+    port: 6443/tcp
+    permanent: true
+    state: enabled
+
+- name: Add my IP to 22/tcp
+  ansible.posix.firewalld:
+    # rich_rule: rule family="ipv4" source address="{{ my_ip.stdout_lines[0] }}" port port="22" protocol="tcp" accept
+    zone: admin_access
+    source: "{{ my_ip.stdout_lines[0] }}"
+    permanent: true
+    state: enabled
+
+- name: Make zone of Flannel
+  ansible.posix.firewalld:
+    zone: flannel_k8s
+    state: present
+    permanent: true
+
+- name: Make zone of Flannel
+  ansible.posix.firewalld:
+    zone: flannel_k8s
+    target: ACCEPT
+    state: present
+    permanent: true
+
+# get all ip from inventory file
+- name: Get all IP addresses from inventory
+  ansible.builtin.shell:
+    cmd: ansible -i inventory.yml all -m debug -a "var=hostvars[inventory_hostname]['ansible_host']" | grep -oP '(\d{1,3}\.){3}\d{1,3}'
+  register: all_ips
+  delegate_to: localhost
+
+- name: Add all_ips list to k8s_nodes zone
+  ansible.posix.firewalld:
+    zone: k8s_nodes
+    state: enabled
+    permanent: true
+    source: "{{ item }}"
+  loop: "{{ all_ips.stdout_lines }}"
+
+- name: Add 10.244.0.0/16 flannel_k8s zone
+  ansible.posix.firewalld:
+    zone: flannel_k8s
+    state: enabled
+    permanent: true
+    source: 10.244.0.0/16
+
+- name: Allow k8s_nodes to 6443/tcp - Kubernetes API
+  ansible.posix.firewalld:
+    zone: k8s_nodes
+    state: enabled
+    permanent: true
+    port: 6443/tcp
+
+- name: Allow k8s_nodes to 2379-2380/tcp
+  ansible.posix.firewalld:
+    zone: k8s_nodes
+    state: enabled
+    permanent: true
+    port: 2379-2380/tcp
+    # cmd: firewall-cmd --permanent --zone=k8s_nodes --add-port=2379-2380/tcp
+
+- name: Allow k8s_nodes to 10250/tcp
+  ansible.posix.firewalld:
+    zone: k8s_nodes
+    state: enabled
+    permanent: true
+    port: 10250/tcp
+    # cmd: firewall-cmd --permanent --zone=k8s_nodes --add-port=10250/tcp
+
+- name: Allow k8s_nodes to 10251/tcp
+  ansible.posix.firewalld:
+    zone: k8s_nodes
+    state: enabled
+    permanent: true
+    port: 10251/tcp
+    # cmd: firewall-cmd --permanent --zone=k8s_nodes --add-port=10251/tcp
+
+- name: Allow k8s_nodes to 10252/tcp
+  ansible.posix.firewalld:
+    zone: k8s_nodes
+    state: enabled
+    permanent: true
+    port: 10252/tcp
+    # cmd: firewall-cmd --permanent --zone=k8s_nodes --add-port=10252/tcp
+
+- name: Allow k8s_nodes to 10255/tcp
+  ansible.posix.firewalld:
+    zone: k8s_nodes
+    state: enabled
+    permanent: true
+    port: 10255/tcp
+    # cmd: firewall-cmd --permanent --zone=k8s_nodes --add-port=10255/tcp
+
+- name: Allow k8s_nodes to 10257/tcp
+  ansible.posix.firewalld:
+    zone: k8s_nodes
+    state: enabled
+    permanent: true
+    port: 10257/tcp
+    # cmd: firewall-cmd --permanent --zone=k8s_nodes --add-port=10257/tcp
+
+- name: Allow k8s_nodes to 10259/tcp
+  ansible.posix.firewalld:
+    zone: k8s_nodes
+    state: enabled
+    permanent: true
+    port: 10259/tcp
+    # cmd: firewall-cmd --permanent --zone=k8s_nodes --add-port=10259/tcp
+
+- name: Allow k8s_nodes to 8285/udp Flannel
+  ansible.posix.firewalld:
+    zone: k8s_nodes
+    state: enabled
+    permanent: true
+    port: 8285/udp
+    # cmd: firewall-cmd --permanent --zone=k8s_nodes --add-port=8285/udp
+
+- name: Allow k8s_nodes to 8472/udp Flannel
+  ansible.posix.firewalld:
+    zone: k8s_nodes
+    state: enabled
+    permanent: true
+    port: 8472/udp
+    # cmd: firewall-cmd --permanent --zone=k8s_nodes --add-port=8472/udp
+
+- name: Allow k8s_nodes to 8285/tcp Flannel
+  ansible.posix.firewalld:
+    zone: k8s_nodes
+    state: enabled
+    permanent: true
+    port: 8285/tcp
+    # cmd: firewall-cmd --permanent --zone=k8s_nodes --add-port=8285/udp
+
+- name: Allow k8s_nodes to 8472/tcp Flannel
+  ansible.posix.firewalld:
+    zone: k8s_nodes
+    state: enabled
+    permanent: true
+    port: 8472/tcp
+    # cmd: firewall-cmd --permanent --zone=k8s_nodes --add-port=8472/udp
+
+# firewall-cmd --permanent --zone=public --add-port=30000-32767/udp
+- name: allow 30000-32767/udp NodePorts
+  ansible.posix.firewalld:
+    zone: k8s_nodes
+    state: enabled
+    permanent: true
+    port: 30000-32767/udp
+    # cmd: firewall-cmd --permanent --zone=public --add-port=30000-32767/udp
+
+# firewall-cmd --permanent --zone=public --add-port=30000-32767/tcp
+- name: allow 30000-32767/tcp NodePorts
+  ansible.posix.firewalld:
+    zone: k8s_nodes
+    state: enabled
+    permanent: true
+    port: 30000-32767/tcp
+    # cmd: firewall-cmd --permanent --zone=public --add-port=30000-32767/tcp
+
+- name: firewall-cmd --add-masquerade --permanent
+  ansible.posix.firewalld:
+    masquerade: true
+    permanent: true
+    state: enabled
+#     cmd: firewall-cmd --add-masquerade --permanent
+
+- name: systemctl restart firewalld
+  ansible.builtin.systemd:
+    name: firewalld
+    state: restarted

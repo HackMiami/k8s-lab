@@ -1,0 +1,43 @@
+# Contains values that affect multiple components of the chart.
+global:
+  enabled: true
+  name: consul
+  image: hashicorp/consul:1.16
+  datacenter: atlanta
+  gossipEncryption:
+    autoGenerate: true
+  peering:
+    enabled: true
+  tls:
+    enabled: true
+    enableAutoEncrypt: true
+    verify: true
+  acls:
+    manageSystemACLs: true
+  metrics:
+    enabled: false
+meshGateway:
+  enabled: true
+  replicas: 1
+  service:
+    type: NodePort
+    nodePort: 30085
+dns:
+  enabled: true
+  enableRedirection: true
+server:
+  enabled: true
+  replicas: 1
+  storageClass: openebs-hostpath
+syncCatalog:
+  enabled: true
+ui:
+  enabled: true
+  service:
+    type: NodePort
+  metrics:
+    enabled: false
+connectInject:
+  enabled: true
+  metrics:
+    defaultEnabled: false

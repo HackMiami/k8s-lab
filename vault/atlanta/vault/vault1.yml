@@ -1,0 +1,125 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: vault1-atlanta-8201
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vault1-atlanta-8201
+spec:
+  ports:
+  - name: vault-cluster
+    port: 8201
+    protocol: TCP
+    targetPort: 8201
+  selector:
+    app: vault
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: vault1-atlanta-8201
+  annotations:
+    kubernetes.io/service-account.name: vault1-atlanta-8201
+type: kubernetes.io/service-account-token
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sirt-vault-config
+data:
+  vault-config: |
+    {
+      "max_lease_ttl": "3650d",
+      "api_addr": "https://vault-default.service.consul:8200",
+      "cluster_addr": "https://vault1-atlanta-8201.service.consul:8201",
+      "storage": {
+        "etcd" : {
+        "address": "http://etcd1-atlanta-2379.service.consul:2379",
+        "etcd_api": "v3",
+        "ha_enabled": true
+        }
+      },
+      "listener": {
+        "tcp":{
+          "address": "[::]:8200",
+          "cluster_address": "[::]:8201",
+          "tls_cert_file": "/vault/keys/vault.pem",
+          "tls_key_file": "/vault/keys/vault-key.pem",
+          "tls_require_and_verify_client_cert": false,
+          "tls_disable_client_certs": true,
+          "tls_min_version": "tls12",
+          "tls_max_version": "tls12"
+        }
+      },
+      "ui": true
+    }
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  annotations:
+    consul.hashicorp.com/connect-inject: 'true'
+    consul.hashicorp.com/transparent-proxy: 'false'
+    consul.hashicorp.com/connect-service: 'vault1-atlanta-8201'
+    consul.hashicorp.com/connect-service-port: '8201'
+    consul.hashicorp.com/transparent-proxy-exclude-inbound-ports: '8200'
+  name: vault1-atlanta
+  labels:
+    accessVault: "yes"
+    run: vault-atlanta
+    app: vault
+    node-name: vault1-atlanta
+spec:
+  affinity:
+    podAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+          - key: etcd_node
+            operator: In
+            values:
+            - etcd1-atlanta
+        topologyKey: "kubernetes.io/hostname"
+  serviceAccountName: vault1-atlanta-8201
+  hostname: vault1-atlanta
+  subdomain: vault
+  containers:
+  - image: hashicorp/vault
+    securityContext:
+      # runAsNonRoot: true
+      # runAsGroup: 1000
+      # runAsUser: 100
+      capabilities:
+        add:
+          - IPC_LOCK
+    imagePullPolicy: Always
+    name: vault-atlanta
+    ports:
+    - containerPort: 8200
+    - containerPort: 8201
+    resources: {}
+    command:
+      - "vault"
+      - "server"
+      - "-config"
+      - "/vault/config/vault.json"
+    volumeMounts:
+      - name: vault-config
+        mountPath: /vault/config
+      - name: vault-tls-secret
+        mountPath: /vault/keys
+  volumes:
+    - name: vault-config
+      configMap:
+        name: sirt-vault-config
+        items:
+        - key: vault-config
+          path: vault.json
+    - name: vault-tls-secret
+      secret:
+        secretName: vault-tls-secret
+status: {}
+

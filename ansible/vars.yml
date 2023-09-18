@@ -1,0 +1,13 @@
+- vars:
+  # ansible_connection: ssh
+  ansible_password: "{{ lookup('ini', 'pass section=default file=default.ini') }}"
+  # ansible_become: yes
+  become_user: root
+  ansible_user: root
+  ansible_become_password: "{{ ansible_password }}"
+  pubkeys: "{{ lookup('file', '~/.ssh/k8s-lab.pub') }}"
+  linode_token: "{{ lookup('file', '../.linode_token') }}"
+  python_version: 3.10.7
+  k8s_base: 1.25
+  k8s_version: '{{ k8s_base }}.4'
+  k8s_version_install: '{{ k8s_version }}-0'

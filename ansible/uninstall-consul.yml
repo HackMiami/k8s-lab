@@ -1,0 +1,15 @@
+---
+- name: Setup consul-k8s on Centos.
+  vars_files: vars.yml
+  gather_facts: false
+  hosts: all
+
+  tasks:
+  - name: install consul-k8s
+    command: consul-k8s uninstall -auto-approve -wipe-data
+
+  - name: linode_reboot
+    command:
+      cmd: python3 ../scripts/linode_reboot.py --token {{ linode_token }} --id {{ linodeid }} --reboot --ping --ip {{ ansible_host }}
+    delegate_to: localhost
+    connection: local

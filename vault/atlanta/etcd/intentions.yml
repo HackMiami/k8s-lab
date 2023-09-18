@@ -1,0 +1,82 @@
+---
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceIntentions
+metadata:
+  name: etcd0-atlanta-2380-allows
+spec:
+  destination:
+    name: etcd0-atlanta-2380
+  sources:
+   - name: etcd1-atlanta-2380
+     action: allow
+   - name: etcd2-atlanta-2380
+     action: allow
+---
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceIntentions
+metadata:
+  name: etcd1-atlanta-2380-allows
+spec:
+  destination:
+    name: etcd1-atlanta-2380
+  sources:
+   - name: etcd0-atlanta-2380
+     action: allow
+   - name: etcd2-atlanta-2380
+     action: allow
+---
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceIntentions
+metadata:
+  name: etcd2-atlanta-2380-allows
+spec:
+  destination:
+    name: etcd2-atlanta-2380
+  sources:
+   - name: etcd0-atlanta-2380
+     action: allow
+   - name: etcd1-atlanta-2380
+     action: allow
+---
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceIntentions
+metadata:
+  name: etcd0-atlanta-2379-allows
+spec:
+  destination:
+    name: etcd0-atlanta-2379
+  sources:
+   - name: vault0-8201
+     action: allow
+   - name: etcd1-atlanta-2379
+     action: allow
+   - name: etcd2-atlanta-2379
+     action: allow
+---
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceIntentions
+metadata:
+  name: etcd1-atlanta-2379-allows
+spec:
+  destination:
+    name: etcd1-atlanta-2379
+  sources:
+   - name: vault1-8201
+     action: allow
+   - name: etcd0-atlanta-2379
+     action: allow
+   - name: etcd2-atlanta-2379
+     action: allow
+---
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceIntentions
+metadata:
+  name: etcd2-atlanta-2379-allows
+spec:
+  destination:
+    name: etcd2-atlanta-2379
+  sources:
+   - name: etcd0-atlanta-2379
+     action: allow
+   - name: etcd1-atlanta-2379
+     action: allow

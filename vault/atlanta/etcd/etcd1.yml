@@ -1,0 +1,128 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: etcd1-atlanta-2379
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: etcd1-atlanta-2380
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: etcd1-atlanta-2379
+spec:
+  ports:
+  - name: client
+    port: 2379
+    protocol: TCP
+    targetPort: 2379
+  selector:
+    etcd_node: etcd1-atlanta
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: etcd1-atlanta-2380
+spec:
+  ports:
+  - name: server
+    port: 2380
+    protocol: TCP
+    targetPort: 2380
+  selector:
+    etcd_node: etcd1-atlanta
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: etcd1-atlanta-2379
+  annotations:
+    kubernetes.io/service-account.name: etcd1-atlanta-2379
+type: kubernetes.io/service-account-token
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: etcd1-atlanta-2380
+  annotations:
+    kubernetes.io/service-account.name: etcd1-atlanta-2380
+type: kubernetes.io/service-account-token
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: etcd0-atlanta-data
+spec:
+  accessModes:
+    - ReadWriteOnce  # This specifies that the volume should be mounted as read-write for a single node
+  storageClassName: openebs-hostpath  # Name of the StorageClass for OpenEBS HostPath
+  resources:
+    requests:
+      storage: 2Gi  # Specify the desired storage size
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  annotations:
+    consul.hashicorp.com/connect-inject: 'true'
+    consul.hashicorp.com/transparent-proxy: 'false'
+    consul.hashicorp.com/connect-service: 'etcd1-atlanta-2379,etcd1-atlanta-2380'
+    consul.hashicorp.com/connect-service-port: '2379,2380'
+  name: etcd1-atlanta
+  labels:
+    app: vault-etcd
+    etcd_node: etcd1-atlanta
+spec:
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+          - key: app
+            operator: In
+            values:
+            - vault-etcd
+        topologyKey: "kubernetes.io/hostname"
+  serviceAccountName: etcd1-atlanta-2379
+  containers:
+  - name: etcd1-atlanta
+    image: quay.io/coreos/etcd:latest
+    command:
+      - /usr/local/bin/etcd
+      - --name
+      - etcd1-atlanta
+      - --data-dir
+      - /etcd/data
+      - --initial-advertise-peer-urls
+      - http://etcd1-atlanta-2380.default.svc.cluster.local:2380
+      - --initial-cluster
+      - etcd1-atlanta=http://etcd1-atlanta-2380.default.svc.cluster.local:2380,etcd0-atlanta=http://etcd0-atlanta-2380.default.svc.cluster.local:2380,etcd2-atlanta=http://etcd2-atlanta-2380.default.svc.cluster.local:2380
+      - --listen-peer-urls
+      - http://0.0.0.0:2380
+      - --listen-client-urls
+      - http://0.0.0.0:2379
+      - --advertise-client-urls
+      - http://etcd1-atlanta-2379.service.consul:2379
+      - --initial-cluster-state
+      - new
+      - --initial-cluster-token
+      - 63c3408d-e3e5-4532-a558-7793bc974e65
+    volumeMounts:
+      - name: etcd1-atlanta-data
+        mountPath: /etcd/data
+    ports:
+    - containerPort: 2379
+      name: client
+    - containerPort: 2380
+      name: server
+  volumes:
+    # - name: etcd1-atlanta-data
+    #   hostPath:
+    #     path: /data/etcd1-atlanta
+      - name: etcd1-atlanta-data
+        persistentVolumeClaim:
+          claimName: etcd1-atlanta-data
+  restartPolicy: Always

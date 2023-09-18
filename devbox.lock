@@ -1,0 +1,82 @@
+{
+  "lockfile_version": "1",
+  "packages": {
+    "consul@latest": {
+      "last_modified": "2023-08-14T01:28:26Z",
+      "resolved": "github:NixOS/nixpkgs/81b970640e56a5c07a336d2c05018b0c9bf57a51#consul",
+      "source": "devbox-search",
+      "version": "1.16.1"
+    },
+    "go@latest": {
+      "last_modified": "2023-09-17T10:54:49Z",
+      "resolved": "github:NixOS/nixpkgs/5148520bfab61f99fd25fb9ff7bfbb50dad3c9db#go_1_21",
+      "source": "devbox-search",
+      "version": "1.21.1"
+    },
+    "jq@latest": {
+      "last_modified": "2023-02-24T09:01:09Z",
+      "resolved": "github:NixOS/nixpkgs/7d0ed7f2e5aea07ab22ccb338d27fbe347ed2f11#jq",
+      "source": "devbox-search",
+      "version": "1.6-bin"
+    },
+    "kubectl@latest": {
+      "last_modified": "2023-09-10T10:53:27Z",
+      "resolved": "github:NixOS/nixpkgs/78058d810644f5ed276804ce7ea9e82d92bee293#kubectl",
+      "source": "devbox-search",
+      "version": "1.28.1"
+    },
+    "kubescape": {
+      "resolved": "github:NixOS/nixpkgs/f80ac848e3d6f0c12c52758c0f25c10c97ca3b62#kubescape",
+      "source": "nixpkg"
+    },
+    "kubescape@latest": {
+      "last_modified": "2023-09-17T10:54:49Z",
+      "resolved": "github:NixOS/nixpkgs/5148520bfab61f99fd25fb9ff7bfbb50dad3c9db#kubescape",
+      "source": "devbox-search",
+      "version": "2.9.1"
+    },
+    "pwgen@latest": {
+      "last_modified": "2023-07-06T12:20:10Z",
+      "resolved": "github:NixOS/nixpkgs/5daaa32204e9c46b05cd709218b7ba733d07e80c#pwgen",
+      "source": "devbox-search",
+      "version": "2.08"
+    },
+    "pyenv@latest": {
+      "last_modified": "2023-09-10T10:53:27Z",
+      "resolved": "github:NixOS/nixpkgs/78058d810644f5ed276804ce7ea9e82d92bee293#pyenv",
+      "source": "devbox-search",
+      "version": "2.3.26"
+    },
+    "python@3.11.3": {
+      "last_modified": "2023-06-01T21:06:48Z",
+      "plugin_version": "0.0.1",
+      "resolved": "github:NixOS/nixpkgs/e002d1926c23b29be7b59217e5f9740565b642ca#python311",
+      "source": "devbox-search",
+      "version": "3.11.3"
+    },
+    "rsync@latest": {
+      "last_modified": "2023-09-10T10:53:27Z",
+      "resolved": "github:NixOS/nixpkgs/78058d810644f5ed276804ce7ea9e82d92bee293#rsync",
+      "source": "devbox-search",
+      "version": "3.2.7"
+    },
+    "sshpass@latest": {
+      "last_modified": "2023-06-01T21:06:48Z",
+      "resolved": "github:NixOS/nixpkgs/e002d1926c23b29be7b59217e5f9740565b642ca#sshpass",
+      "source": "devbox-search",
+      "version": "1.10"
+    },
+    "terraform@latest": {
+      "last_modified": "2023-09-10T10:53:27Z",
+      "resolved": "github:NixOS/nixpkgs/78058d810644f5ed276804ce7ea9e82d92bee293#terraform",
+      "source": "devbox-search",
+      "version": "1.5.7"
+    },
+    "vault@latest": {
+      "last_modified": "2023-09-17T10:54:49Z",
+      "resolved": "github:NixOS/nixpkgs/5148520bfab61f99fd25fb9ff7bfbb50dad3c9db#vault",
+      "source": "devbox-search",
+      "version": "1.14.3"
+    }
+  }
+}

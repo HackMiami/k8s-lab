@@ -1,0 +1,42 @@
+---
+- name: Setup helm.
+  vars_files: vars.yml
+  gather_facts: false
+  hosts: all
+
+  tasks:
+
+  - name: download get-helm script
+    command: curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3  -o /root/get-helm-3.sh
+
+  - name: install git
+    yum:
+      name: git
+      state: present
+
+  - name: Change kube context permissions
+    ansible.builtin.file:
+      path:  /root/.kube/config
+      mode: 400
+
+  - name: set 744 helm
+    ansible.builtin.file:
+      mode: 744
+      path: /root/get-helm-3.sh
+
+  - name: install helm
+    command: /root/get-helm-3.sh
+
+  - name: rm get-helm-3.sh
+    ansible.builtin.file:
+      path: /root/get-helm-3.sh
+      state: absent
+
+  - name: Add helm repo
+    command: helm repo add stable https://charts.helm.sh/stable
+
+  - name: Add bitanami repo
+    command: helm repo add bitnami https://charts.bitnami.com/bitnami
+
+  - name: Update helm repo
+    command: helm repo update

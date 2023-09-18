@@ -1,0 +1,93 @@
+---
+- name: Setup consul-k8s on Centos.
+  vars_files: vars.yml
+  gather_facts: false
+  hosts: all
+
+  tasks:
+
+  - name: read vault init result from file locally
+    ansible.builtin.shell: |
+      cat /root/vault-init.txt
+    register: vault_init_result
+
+  # - name: debug vault init result
+  #   ansible.builtin.debug:
+  #     msg: "{{ vault_init_result }}"
+
+  - name: get "Initial Root Token "from file /root/vault-init.txt with regex
+    set_fact:
+      vault_root_token: "{{ vault_init_result.stdout_lines[2] | regex_replace('Initial Root Token: ', '') }}"
+
+  - name: make sure root is login to vault0-{{ region }}
+    ansible.builtin.shell: |
+      kubectl exec -it vault0-{{ region }} -- vault login -tls-skip-verify {{ vault_root_token }}
+
+  - name: enable kv secrets engine
+    ansible.builtin.shell: |
+      kubectl exec -it vault0-{{ region }} -- vault secrets enable -tls-skip-verify kv
+
+  - name: enable auth kubernetes
+    ansible.builtin.shell: |
+      kubectl exec -it vault0-{{ region }} -- vault auth enable -tls-skip-verify kubernetes
+
+  - name: helm add repo hashicorp https://helm.releases.hashicorp.com
+    ansible.builtin.shell: |
+      helm repo add hashicorp https://helm.releases.hashicorp.com
+
+  - name: helm update repo
+    ansible.builtin.shell: |
+      helm repo update
+
+  - name: helm install vault hashicorp/vault injector
+    ansible.builtin.shell: |
+      helm install vault hashicorp/vault --set "global.externalVaultAddr=https://vault-default.service.consul:8200"
+
+  - name: apply kube vault secret
+    ansible.builtin.shell: |
+      kubectl apply -f /root/vault/vault-injector/vault-secret.yml
+
+# VAULT_HELM_SECRET_NAME=$(kubectl get secrets --output=json | jq -r '.items[].metadata | select(.name|startswith("vault-token-")).name')
+  - name: get vault helm secret name
+    ansible.builtin.shell: |
+      kubectl get secrets --output=json | jq -r '.items[].metadata | select(.name|startswith("vault-token-")).name'
+    register: VAULT_HELM_SECRET_NAME
+
+  # - name: debug VAULT_HELM_SECRET_NAME
+  #   ansible.builtin.debug:
+  #     msg: "{{ VAULT_HELM_SECRET_NAME }}"
+
+# TOKEN_REVIEW_JWT=$(kubectl get secret $VAULT_HELM_SECRET_NAME --output='go-template={{ .data.token }}' | base64 --decode)
+  - name: get TOKEN_REVIEW_JWT
+    ansible.builtin.shell: |
+      kubectl get secret {{ VAULT_HELM_SECRET_NAME.stdout }} --output="go-template={{ '{{' }} .data.token {{ '}}' }}" | base64 --decode
+    register: TOKEN_REVIEW_JWT
+
+  # - name: debug TOKEN_REVIEW_JWT
+  #   ansible.builtin.debug:
+  #     msg: "{{ TOKEN_REVIEW_JWT.stdout }}"
+
+# KUBE_CA_CERT=$(kubectl config view --raw --minify --flatten --output='jsonpath={.clusters[].cluster.certificate-authority-data}' | base64 --decode)
+  - name: get KUBE_CA_CERT
+    ansible.builtin.shell: |
+      kubectl config view --raw --minify --flatten --output='jsonpath={.clusters[].cluster.certificate-authority-data}' | base64 --decode
+    register: KUBE_CA_CERT
+
+  # - name: debug KUBE_CA_CERT
+  #   ansible.builtin.debug:
+  #     msg: "{{ KUBE_CA_CERT.stdout }}"
+
+# KUBE_HOST=$(kubectl config view --raw --minify --flatten --output='jsonpath={.clusters[].cluster.server}')
+  - name: get KUBE_HOST
+    ansible.builtin.shell: |
+      kubectl config view --raw --minify --flatten --output='jsonpath={.clusters[].cluster.server}'
+    register: KUBE_HOST
+
+  # - name: debug KUBE_HOST
+  #   ansible.builtin.debug:
+  #     msg: "{{ KUBE_HOST.stdout }}"
+
+# vault write -tls-skip-verify auth/kubernetes/config token_reviewer_jwt="$TOKEN_REVIEW_JWT" kubernetes_host="$KUBE_HOST" kubernetes_ca_cert="$KUBE_CA_CERT" issuer="https://kubernetes.default.svc.cluster.local"
+  - name: vault write auth/kubernetes/config
+    ansible.builtin.shell: |
+      kubectl exec -it vault0-{{ region }} -- vault write -tls-skip-verify auth/kubernetes/config token_reviewer_jwt="{{ TOKEN_REVIEW_JWT.stdout }}" kubernetes_host="{{ KUBE_HOST.stdout }}" kubernetes_ca_cert="{{ KUBE_CA_CERT.stdout }}" issuer="https://kubernetes.default.svc.cluster.local"

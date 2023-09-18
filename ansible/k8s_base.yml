@@ -1,0 +1,243 @@
+---
+- name: Setup k8s on Centos 9.
+  vars_files: vars.yml
+  gather_facts: false
+  hosts: all
+
+  tasks:
+
+  - name: Making sure the host is reachable
+    command:
+      cmd: python3 ../scripts/linode_reboot.py --token {{ linode_token }} --id {{ linodeid }} --reboot --ping --ip {{ ansible_host }}
+    delegate_to: localhost
+    connection: local
+
+  - name: Wait 300 seconds for target connection to become reachable/usable
+    ansible.builtin.wait_for_connection:
+    timeout: 300
+
+  - name: Update the system
+    ansible.builtin.yum:
+      name: '*'
+      state: latest
+      update_cache: yes
+      exclude:
+      - kubeadm*
+      - kubectl*
+      - kubelet*
+      - cri-o*
+      - cri-tools*
+      - kubernetes-cni*
+      - containernetworking-plugins*
+
+  - name: Change hostname to myserver
+    become: true
+    ansible.builtin.hostname:
+      name: "{{ host_name }}"
+
+  - name: Add myself to /etc/hosts
+    become: true
+    ansible.builtin.lineinfile:
+      dest: /etc/hosts
+      backup: no
+      backrefs: yes
+      regexp: '^127\.0\.0\.1[ \t]+localhost+(.*)$'
+      line: '127.0.0.1\t{{ host_name }}\tlocalhost\1'
+      state: present
+
+  - name: Install epel-release repo
+    ansible.builtin.yum:
+      name:
+      - epel-release
+      state: present
+
+  - name: Add kubernetes repositorie
+    ansible.builtin.yum_repository:
+      name: kubernetes
+      description: Kubernetes
+      file: kubernetes
+      baseurl: https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+      gpgcheck: no
+      enabled: no
+
+  - name: Install cri-o repo
+    ansible.builtin.shell:
+      cmd: curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable.repo https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/devel:kubic:libcontainers:stable.repo
+    environment:
+      - VERSION: '{{ k8s_base }}'
+      - OS: CentOS_9_Stream
+
+  - name: Install cri-o repo
+    ansible.builtin.shell:
+      cmd: curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable:cri-o:$VERSION.repo https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable:cri-o:$VERSION/$OS/devel:kubic:libcontainers:stable:cri-o:$VERSION.repo
+    environment:
+      - VERSION: '{{ k8s_base }}'
+      - OS: CentOS_9_Stream
+
+
+  - name: Install extra packages
+    ansible.builtin.yum:
+      name:
+      - cri-o
+      - jq
+      - curl
+      - wget
+      - tar
+      - vim
+      - rsync
+      - net-tools
+      - bind-utils
+      - yum-utils
+      - bridge-utils
+      state: present
+
+  - name: Install kubernetes packages
+    ansible.builtin.yum:
+      name:
+      - kubelet-{{k8s_version_install}}
+      - kubeadm-{{k8s_version_install}}
+      - kubectl-{{k8s_version_install}}
+      state: present
+      enablerepo:
+        - kubernetes
+      allow_downgrade: yes
+
+  # This issues was driving me crazy for a while.  The problem is that the
+  # looks like the containernetworking-plugins put the binaries in a different
+  # directory than the kubernetes-cni package.  So we need to create symlinks
+  # also added /usr/libexec/cni to for testing /etc/crio/crio.conf
+  - name: make sure /opt/cni/bin exists
+    file:
+      path: /opt/cni/bin
+      state: directory
+
+  - name: Get list of cni plugin files
+    find:
+      paths: /usr/libexec/cni
+      patterns: "*"
+      recurse: yes
+    register: source_files
+
+  - name: Create symlinks in target directory
+    file:
+      src: "{{ item.path }}"
+      dest: /opt/cni/bin/{{ item.path | basename }}
+      state: link
+    loop: "{{ source_files.files }}"
+
+  - name: Ensure br_netfilter is enabled.
+    modprobe:
+      name: br_netfilter
+      state: present
+
+  - name: Ensure overlay is enabled.
+    modprobe:
+      name: overlay
+      state: present
+
+  - name: /etc/modules-load.d/crio.conf
+    ansible.builtin.copy:
+      dest: /etc/modules-load.d/crio.conf
+      content: |
+        overlay
+        br_netfilter
+
+  - name: Ensure iptable_nat is enabled.
+    modprobe:
+      name: iptable_nat
+      state: present
+
+  - name: /etc/modules-load.d/iptable_nat.conf
+    ansible.builtin.copy:
+      dest: /etc/modules-load.d/iptable_nat.conf
+      content: |
+        iptable_nat
+
+  - name: Creating sysctl configuration and loading it
+    ansible.builtin.copy:
+      dest: /etc/sysctl.d/99-kubernetes.conf
+      content: |
+        net.bridge.bridge-nf-call-iptables = 1
+        net.ipv4.ip_forward = 1
+        vm.max_map_count=262144
+
+  - name: Load sysctl settings
+    ansible.builtin.shell:
+      cmd: sysctl --load=/etc/sysctl.d/99-kubernetes.conf
+
+  - name: /etc/crio/crio.conf
+    ansible.builtin.copy:
+      dest: /etc/crio/crio.conf
+      content: |
+        [crio.runtime]
+        conmon_cgroup = "pod"
+        cgroup_manager = "systemd"
+        network_dir = "/etc/cni/net.d"
+        plugin_dirs = [
+          "/usr/libexec/cni",
+          "/opt/cni/bin"
+        ]
+
+  - name: /etc/containers/registries.conf
+    ansible.builtin.copy:
+      dest: /etc/containers/registries.conf
+      content: |
+        unqualified-search-registries = ["registry.fedoraproject.org", "docker.io"]
+        [[registry]]
+        prefix = "docker.io"
+        location = "docker.io"
+        insecure = false
+        blocked = false
+        [[registry.mirror]]
+        location = "docker.io"
+        insecure = false
+        blocked = false
+        [[registry]]
+        prefix = "registry.fedoraproject.org"
+        location = "registry.fedoraproject.org"
+        insecure = false
+        blocked = false
+        [[registry.mirror]]
+        location = "registry.fedoraproject.org"
+        insecure = false
+        blocked = false
+
+  - name: Disable SELinux
+    ansible.builtin.selinux:
+      state: disabled
+      policy: targeted
+
+  - name: Disable swap
+    ansible.builtin.command:
+      cmd: swapoff -a
+
+  - name: remove swap from fstab
+    ansible.builtin.replace:
+      path: /etc/fstab
+      regexp: '^.*swap.*$'
+      replace: '#\g<0>'
+
+  - name: Enable and start kubelet
+    ansible.builtin.service:
+      name: kubelet
+      enabled: yes
+      state: started
+
+  - name: Enable and start crio
+    ansible.builtin.service:
+      name: crio
+      enabled: yes
+      state: started
+
+  - name: setup firewalld
+    import_tasks: firewalld.yml
+
+  - name: Reboot the servers to apply kernel changes
+    command:
+      cmd: python3 ../scripts/linode_reboot.py --token {{ linode_token }} --id {{ linodeid }} --reboot --ping --ip {{ ansible_host }}
+    delegate_to: localhost
+    connection: local
+
+  - name: Wait 300 seconds for target connection to become reachable/usable
+    ansible.builtin.wait_for_connection:
+    timeout: 300

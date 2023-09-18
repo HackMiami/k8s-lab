@@ -1,0 +1,22 @@
+---
+- name: Setup consul peering config on Centos.
+  vars_files: vars.yml
+  gather_facts: false
+  hosts: all
+
+  tasks:
+
+  - name: Synchronize token to remote
+    ansible.posix.synchronize:
+      src: ../k8s/PeeringToken.yml
+      dest: /root/PeeringToken.yml
+
+  - name: apply Peering Token config
+    command: kubectl apply -f /root/PeeringToken.yml
+
+  - name: apply Peering Dialer config
+    command: kubectl apply -f /root/consul/PeeringDialer.yml
+
+
+
+

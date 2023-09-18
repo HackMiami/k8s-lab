@@ -1,0 +1,13 @@
+---
+- name: Setup consul-k8s on Centos.
+  vars_files: vars.yml
+  gather_facts: false
+  hosts: all
+
+  tasks:
+
+  - name: add helm openebs repo
+    command: helm repo add openebs https://openebs.github.io/charts
+
+  - name: install openebs with helm chart
+    command: helm install openebs openebs/openebs --create-namespace  --namespace openebs

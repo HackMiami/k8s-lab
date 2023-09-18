@@ -1,0 +1,24 @@
+---
+- name: Setup consul peering config on Centos.
+  vars_files: vars.yml
+  gather_facts: false
+  hosts: all
+
+  tasks:
+  - name: apply Peering Acceptor config
+    command: kubectl apply -f /root/consul/PeeringAcceptor.yml
+
+  - name: export Peering Acceptor config
+    command: kubectl get secret "peering-token-dallas" -o yaml
+    register: peering_token_dallas
+
+  - name: Create a file with the Consul token
+    copy:
+      content: "{{ peering_token_dallas.stdout }}"
+      dest: /root/PeeringToken.yml
+
+  - name: Synchronize token to remote
+    ansible.posix.synchronize:
+      mode: pull
+      src: /root/PeeringToken.yml
+      dest: ../k8s/PeeringToken.yml

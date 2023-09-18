@@ -1,0 +1,42 @@
+---
+- name: Setup argocd.
+  vars_files: vars.yml
+  gather_facts: false
+  hosts: all
+
+  tasks:
+  - name: Add helm repo
+    command: helm repo add argo https://argoproj.github.io/argo-helm
+
+  - name: Install argocd with helm
+    command: helm install argocd argo/argo-cd  --namespace argocd --create-namespace
+
+  - name: wait for argocd server to be ready
+    command: kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=argocd-server -n argocd --timeout=300s
+
+  - name: get argocd password
+    command: kubectl get secret/argocd-initial-admin-secret --template="{{ '{{' }} .data.password | base64decode {{ '}}' }}" -n argocd
+    register: consul_token_result
+
+  - name: write /root/{{ region }}_argocd_password.txt
+    copy:
+      content: "{{ consul_token_result.stdout }}"
+      dest: /root/{{ region }}_argocd_password.txt
+
+  - name: Synchronize argocd_password.txt
+    ansible.posix.synchronize:
+      mode: pull
+      src: /root/{{ region }}_argocd_password.txt
+      dest: ../k8s/{{ region }}_argocd_password.txt
+
+  - name: install argocd cli
+    command: curl -sSL -o /tmp/argocd-linux-amd64 https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+
+  - name: install argocd cli
+    command: install -m 555 /tmp/argocd-linux-amd64 /usr/local/bin/argocd
+
+  - name: rm /tmp/argocd-linux-amd64
+    command: rm /tmp/argocd-linux-amd64
+
+  - name: patch dex server to 0 replicas
+    command: kubectl -n argocd patch deployment.apps/argocd-dex-server -p '{"spec":{"replicas":0}}'

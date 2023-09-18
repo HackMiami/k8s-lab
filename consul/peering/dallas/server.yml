@@ -1,0 +1,46 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: server
+automountServiceAccountToken: true
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name:  server
+spec:
+  selector:
+    app: server
+  ports:
+    - port: 3000
+      targetPort: 3000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: server
+  labels:
+    app: server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: server
+  template:
+    metadata:
+      annotations:
+        consul.hashicorp.com/connect-inject: "true"
+      labels:
+        app: server
+    spec:
+      serviceAccountName: server
+      containers:
+      - name: server
+        image: python
+        command: ["python3", "-m", "http.server", "3000"]
+        ports:
+          - containerPort: 3000
+        imagePullPolicy: "Always"
+      restartPolicy: "Always"
+

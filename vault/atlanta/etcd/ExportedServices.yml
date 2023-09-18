@@ -1,0 +1,16 @@
+---
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ExportedServices
+metadata:
+  name: default
+spec:
+  services:
+    - name: etcd0-atlanta-2380
+      consumers:
+        - peer: dallas
+    - name: etcd1-atlanta-2380
+      consumers:
+        - peer: dallas
+    - name: etcd2-atlanta-2380
+      consumers:
+        - peer: dallas
