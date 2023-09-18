@@ -9,11 +9,6 @@
   - name: download get-helm script
     command: curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3  -o /root/get-helm-3.sh
 
-  - name: install git
-    yum:
-      name: git
-      state: present
-
   - name: Change kube context permissions
     ansible.builtin.file:
       path:  /root/.kube/config

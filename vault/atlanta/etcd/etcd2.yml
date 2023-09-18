@@ -54,7 +54,7 @@ type: kubernetes.io/service-account-token
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: etcd0-atlanta-data
+  name: etcd2-atlanta-data
 spec:
   accessModes:
     - ReadWriteOnce  # This specifies that the volume should be mounted as read-write for a single node

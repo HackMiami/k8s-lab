@@ -80,6 +80,7 @@
       name:
       - cri-o
       - jq
+      - git
       - curl
       - wget
       - tar

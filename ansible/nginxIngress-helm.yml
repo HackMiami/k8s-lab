@@ -6,10 +6,10 @@
 
   tasks:
 
-  - name: add helm openebs repo
+  - name: add helm ingress-nginx repo
     command: helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
 
-  - name: install openebs with helm chart
+  - name: install ingress-nginx with helm chart
     command: helm install nginx-ingress ingress-nginx/ingress-nginx --create-namespace --namespace nginx-ingress \
               --set controller.service.type=NodePort \
               --set controller.service.ports.http=80 \
