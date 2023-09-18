@@ -30,41 +30,8 @@ deactivate ()
 # Name of the virtual env to be created
 VIRTUALENV_NAME='py-lab'
 
-# # python version to be installed
-# VERSION=3.9.13
 
 CURRENT_DIR=`pwd`
-
-# # Checking to see if python $VERSION is installed
-# check=0
-# for versions in `pyenv versions | sed 's/*//' | awk '{print $1}'`; do
-#    if [ "$versions" == "$VERSION" ]; then
-#       echo " python $VERSION is installed [ OK ]"
-#       check=1
-#       break
-#    fi
-# done
-
-# # install python $VERSION if not installed
-# if [ $check -eq 0 ]; then
-#    source ~/.bashrc
-#    echo " going to install python $VERSION with pyenv and setting it to local"
-#    pyenv install $VERSION --skip-existing
-# fi
-
-# echo " Checking if .python-version matches $VERSION"
-
-
-# # Test if .python-version exists and if it matches $VERSION
-# if [ -f ".python-version" ]; then
-#    PYTHON_VERSION=`cat .python-version`
-#    if [ "$PYTHON_VERSION" == "$VERSION" ]; then
-#       echo " .python-version matches $VERSION [ OK ]"
-#    fi
-# else
-#    echo " .python-version doesn't not exist, creating it. [ OK ]"
-#    pyenv local $VERSION
-# fi
 
 # Test if we're in a virtual env
 if [ "$VIRTUAL_ENV" == "" ]; then
@@ -79,19 +46,6 @@ fi
 _ENV_WANT=$CURRENT_DIR/$VIRTUALENV_NAME
 
 PYTHON=`which python3`
-VIRTUALENV=`which virtualenv`
-PYTHON_VER=`$PYTHON -V | awk '{print $2}'`
-PYTHON_MAJOR=`echo $PYTHON_VER | awk -F'.' '{print $1}'`
-PYTHON_MINOR=`echo $PYTHON_VER | awk -F'.' '{print $2}'`
-# checking python
-if [ $PYTHON_MAJOR -gt 2 ]; then
-   if [ $PYTHON_MINOR -gt 7 ]; then
-      echo " PYTHON VERSION LOOKS GOOD [ OK ]"
-   fi
-else
-   echo " WARNING - python2 or python3 less then 7 detected"
-   exit
-fi
 
 # setup env install passlib and ansible  activate env
 if [ -d "$_ENV_WANT" ]; then
