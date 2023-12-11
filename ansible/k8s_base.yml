@@ -90,6 +90,7 @@
       - bind-utils
       - yum-utils
       - bridge-utils
+      - python39
       state: present
 
   - name: Install kubernetes packages
