@@ -41,7 +41,7 @@ connectInject:
   enabled: true
   cni:
     enabled: true
-    logLevel: debug
+    # logLevel: debug
     cniBinDir: "/opt/cni/bin"
     cniNetDir: "/etc/cni/net.d"
   metrics:
