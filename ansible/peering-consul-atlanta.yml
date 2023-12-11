@@ -9,12 +9,12 @@
     command: kubectl apply -f /root/consul/PeeringAcceptor.yml
 
   - name: export Peering Acceptor config
-    command: kubectl get secret "peering-token-dallas" -o yaml
-    register: peering_token_dallas
+    command: kubectl get secret "peering-token-newark" -o yaml
+    register: peering_token_newark
 
   - name: Create a file with the Consul token
     copy:
-      content: "{{ peering_token_dallas.stdout }}"
+      content: "{{ peering_token_newark.stdout }}"
       dest: /root/PeeringToken.yml
 
   - name: Synchronize token to remote

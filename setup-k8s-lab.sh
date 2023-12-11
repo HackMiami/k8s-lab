@@ -172,10 +172,10 @@ if [[ "$response" =~ ^(yes|y)$ ]]; then
 fi
 
 # Run setup consul on the masters
-echo " -- Going to setup Consul and peering ATL and Dallas -- "
+echo " -- Going to setup Consul and peering ATL and newark -- "
 echo " ansible-playbook -f 20 consul-helm.yml -i inventory.yml --limit master "
 echo " ansible-playbook -f 20 peering-consul-atlanta.yml -i inventory.yml --limit master-1 "
-echo " ansible-playbook -f 20 peering-consul-dallas.yml -i inventory.yml --limit master-2 "
+echo " ansible-playbook -f 20 peering-consul-newark.yml -i inventory.yml --limit master-2 "
 echo " ansible-playbook -f 20 client-deployments.yml -i inventory.yml --limit master "
 echo " ansible-playbook -f 20 server-deployment.yml -i inventory.yml --limit master-2 "
 echo " ansible-playbook -f 20 server-access-intention.yml -i inventory.yml --limit master-2 "
@@ -188,7 +188,7 @@ if [[ "$response" =~ ^(yes|y)$ ]]; then
 
    ansible-playbook -f 20 peering-consul-atlanta.yml -i inventory.yml --limit master-1
 
-   ansible-playbook -f 20 peering-consul-dallas.yml -i inventory.yml --limit master-2
+   ansible-playbook -f 20 peering-consul-newark.yml -i inventory.yml --limit master-2
 
    ansible-playbook -f 20 client-deployments.yml -i inventory.yml --limit master
 
@@ -220,7 +220,7 @@ fi
 echo " ---- "
 echo " ---- "
 echo " DONE  - I leave you here..."
-echo " in the k8s_env folder you will find atlanta_env and dallas_env "
+echo " in the k8s_env folder you will find atlanta_env and newark_env "
 echo " you can source one of the fills to open ports for the services"
 echo " you need kubectl and consul installed on your system"
 echo " ---- "
