@@ -1,0 +1,17 @@
+# Contains values that affect multiple components of the chart.
+global:
+  enabled: true
+  name: consul
+  image: hashicorp/consul:1.17
+  datacenter: atlanta-kv
+  gossipEncryption:
+    autoGenerate: true
+  tls:
+    enabled: true
+  acls:
+    manageSystemACLs: true
+server:
+  enabled: true
+  replicas: 2
+  storageClass: openebs-hostpath
+

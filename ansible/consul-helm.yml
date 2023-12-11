@@ -24,7 +24,7 @@
       - consul
       state: present
 
-  - name: copy consul config dir
+  - name: copy consul config dir {{ region }}
     copy:
       src: ../consul/peering/{{ region }}/ # dont forget the trailing slash here
       dest: /root/consul

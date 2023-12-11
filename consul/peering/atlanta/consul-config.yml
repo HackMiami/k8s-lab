@@ -2,7 +2,7 @@
 global:
   enabled: true
   name: consul
-  image: hashicorp/consul:1.16
+  image: hashicorp/consul:1.17
   datacenter: atlanta
   gossipEncryption:
     autoGenerate: true
@@ -39,5 +39,10 @@ ui:
     enabled: false
 connectInject:
   enabled: true
+  cni:
+    enabled: true
+    logLevel: debug
+    cniBinDir: "/opt/cni/bin"
+    cniNetDir: "/etc/cni/net.d"
   metrics:
     defaultEnabled: false

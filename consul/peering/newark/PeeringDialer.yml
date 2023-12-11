@@ -5,6 +5,6 @@ metadata:
 spec:
   peer:
     secret:
-      name: "peering-token-dallas"
+      name: "peering-token-newark"
       key: "data"
       backend: "kubernetes"

@@ -9,8 +9,7 @@
     "kubectl": "latest",
     "consul": "latest",
     "vault": "latest",
-    "rsync": "latest",
-    "go": "latest"
+    "rsync": "latest"
   },
   "shell": {
     "init_hook": [

@@ -65,14 +65,14 @@
       cmd: curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable.repo https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/devel:kubic:libcontainers:stable.repo
     environment:
       - VERSION: '{{ k8s_base }}'
-      - OS: CentOS_9_Stream
+      - OS: '{{ OS }}'
 
   - name: Install cri-o repo
     ansible.builtin.shell:
       cmd: curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable:cri-o:$VERSION.repo https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable:cri-o:$VERSION/$OS/devel:kubic:libcontainers:stable:cri-o:$VERSION.repo
     environment:
       - VERSION: '{{ k8s_base }}'
-      - OS: CentOS_9_Stream
+      - OS: '{{ OS }}'
 
 
   - name: Install extra packages
@@ -165,6 +165,16 @@
   - name: Load sysctl settings
     ansible.builtin.shell:
       cmd: sysctl --load=/etc/sysctl.d/99-kubernetes.conf
+
+  - name: disable redhat registry
+    ansible.builtin.file:
+      path: /etc/containers/registries.conf.d/001-rhel-shortnames.conf
+      state: absent
+
+  - name: disable redhat registry
+    ansible.builtin.file:
+      path: /etc/containers/registries.conf.d/002-rhel-shortnames-overrides.conf
+      state: absent
 
   - name: /etc/crio/crio.conf
     ansible.builtin.copy:

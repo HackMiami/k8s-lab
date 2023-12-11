@@ -14,24 +14,24 @@ with open(terraform_state_file, 'r') as state_file:
 # Initialize the inventory dictionary
 inventory = {'all': {'children': {}}}
 
-region_map = {'us-southeast': 'atlanta', 'us-central': 'dallas'}
+region_map = {'us-southeast': 'atlanta', 'us-central': 'dallas', 'us-east': 'newark', 'us-west': 'fremont'}
 
 # Loop through resources in the Terraform state
 for resource in terraform_state['resources']:
     instance_name = resource['name']
     attributes = resource['instances'][0]['attributes']
 
-    public_ip = attributes.get('ipv4')
+    public_ip = attributes.get('ip_address')
     if public_ip is None:
         continue
-    else:
-        public_ip = public_ip[0]
 
     linodeid = attributes.get('id')
     region = attributes.get('region')
 
     if region in region_map:
         region = region_map[region]
+    else:
+        continue
 
     # Add the region to the inventory dictionary
     if region not in inventory['all']['children']:

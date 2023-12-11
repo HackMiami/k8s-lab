@@ -128,91 +128,91 @@ fi
 
 # Setup k8s packages on the linodes
 echo " ---- "
-read -r -p "RUN ansible-playbook k8s_base.yml -i inventory.yml [y/N] " response
+read -r -p "RUN ansible-playbook -f 20 k8s_base.yml -i inventory.yml [y/N] " response
 response=${response,,}
 if [[ "$response" =~ ^(yes|y)$ ]]; then
    cd $CURRENT_DIR/ansible
-   ansible-playbook k8s_base.yml -i inventory.yml
+   ansible-playbook -f 20 k8s_base.yml -i inventory.yml
 fi
 
 # Run kubeadm -init for the masters
 # and save join commands.
 echo " -- Going to setup the clusters -- "
-echo " ansible-playbook k8s_master.yml -i inventory.yml --limit master "
-echo " ansible-playbook nodes.yml -i inventory.yml --limit node "
-echo " ansible-playbook reboot.yml -i inventory.yml "
+echo " ansible-playbook -f 20 k8s_master.yml -i inventory.yml --limit master "
+echo " ansible-playbook -f 20 nodes.yml -i inventory.yml --limit node "
+echo " ansible-playbook -f 20 reboot.yml -i inventory.yml "
 read -r -p "RUN  [y/N] " response
 response=${response,,}
 if [[ "$response" =~ ^(yes|y)$ ]]; then
    cd $CURRENT_DIR/ansible
-   ansible-playbook k8s_master.yml -i inventory.yml --limit master
+   ansible-playbook -f 20 k8s_master.yml -i inventory.yml --limit master
 
-   ansible-playbook nodes.yml -i inventory.yml --limit node
+   ansible-playbook -f 20 nodes.yml -i inventory.yml --limit node
 
-   ansible-playbook reboot.yml -i inventory.yml
+   ansible-playbook -f 20 reboot.yml -i inventory.yml
 fi
 
 # Run setup helm
 echo " --Going to setup Helm, Nginx-ingress, OpenEBS and ArgCD -- "
-echo " ansible-playbook helm.yml -i inventory.yml --limit master "
-echo " ansible-playbook nginxingress-helm.yml -i inventory.yml --limit master "
-echo " ansible-playbook openebs-helm.yml -i inventory.yml --limit master "
-echo " ansible-playbook argocd-helm.yml -i inventory.yml --limit master-1 "
+echo " ansible-playbook -f 20 helm.yml -i inventory.yml --limit master "
+echo " ansible-playbook -f 20 nginxingress-helm.yml -i inventory.yml --limit master "
+echo " ansible-playbook -f 20 openebs-helm.yml -i inventory.yml --limit master "
+echo " ansible-playbook -f 20 argocd-helm.yml -i inventory.yml --limit master-1 "
 read -r -p "RUN [y/N] " response
 response=${response,,}
 if [[ "$response" =~ ^(yes|y)$ ]]; then
    cd $CURRENT_DIR/ansible
-   ansible-playbook helm.yml -i inventory.yml --limit master
+   ansible-playbook -f 20 helm.yml -i inventory.yml --limit master
 
-   ansible-playbook nginxingress-helm.yml -i inventory.yml --limit master
+   ansible-playbook -f 20 nginxingress-helm.yml -i inventory.yml --limit master
 
-   ansible-playbook openebs-helm.yml -i inventory.yml --limit master
+   ansible-playbook -f 20 openebs-helm.yml -i inventory.yml --limit master
 
-   ansible-playbook argocd-helm.yml -i inventory.yml --limit master-1
+   ansible-playbook -f 20 argocd-helm.yml -i inventory.yml --limit master-1
 fi
 
 # Run setup consul on the masters
 echo " -- Going to setup Consul and peering ATL and Dallas -- "
-echo " ansible-playbook consul-helm.yml -i inventory.yml --limit master "
-echo " ansible-playbook peering-consul-atlanta.yml -i inventory.yml --limit master-1 "
-echo " ansible-playbook peering-consul-dallas.yml -i inventory.yml --limit master-2 "
-echo " ansible-playbook client-deployments.yml -i inventory.yml --limit master "
-echo " ansible-playbook server-deployment.yml -i inventory.yml --limit master-2 "
-echo " ansible-playbook server-access-intention.yml -i inventory.yml --limit master-2 "
-echo " ansible-playbook server-export-service.yml -i inventory.yml --limit master-2 "
+echo " ansible-playbook -f 20 consul-helm.yml -i inventory.yml --limit master "
+echo " ansible-playbook -f 20 peering-consul-atlanta.yml -i inventory.yml --limit master-1 "
+echo " ansible-playbook -f 20 peering-consul-dallas.yml -i inventory.yml --limit master-2 "
+echo " ansible-playbook -f 20 client-deployments.yml -i inventory.yml --limit master "
+echo " ansible-playbook -f 20 server-deployment.yml -i inventory.yml --limit master-2 "
+echo " ansible-playbook -f 20 server-access-intention.yml -i inventory.yml --limit master-2 "
+echo " ansible-playbook -f 20 server-export-service.yml -i inventory.yml --limit master-2 "
 read -r -p "RUN [y/N] " response
 response=${response,,}
 if [[ "$response" =~ ^(yes|y)$ ]]; then
    cd $CURRENT_DIR/ansible
-   ansible-playbook consul-helm.yml -i inventory.yml --limit master
+   ansible-playbook -f 20 consul-helm.yml -i inventory.yml --limit master
 
-   ansible-playbook peering-consul-atlanta.yml -i inventory.yml --limit master-1
+   ansible-playbook -f 20 peering-consul-atlanta.yml -i inventory.yml --limit master-1
 
-   ansible-playbook peering-consul-dallas.yml -i inventory.yml --limit master-2
+   ansible-playbook -f 20 peering-consul-dallas.yml -i inventory.yml --limit master-2
 
-   ansible-playbook client-deployments.yml -i inventory.yml --limit master
+   ansible-playbook -f 20 client-deployments.yml -i inventory.yml --limit master
 
-   ansible-playbook server-deployment.yml -i inventory.yml --limit master-2
+   ansible-playbook -f 20 server-deployment.yml -i inventory.yml --limit master-2
 
-   ansible-playbook server-access-intention.yml -i inventory.yml --limit master-2
+   ansible-playbook -f 20 server-access-intention.yml -i inventory.yml --limit master-2
 
-   ansible-playbook server-export-service.yml -i inventory.yml --limit master-2
+   ansible-playbook -f 20 server-export-service.yml -i inventory.yml --limit master-2
 fi
 
 # Run setup vault with etcd storage backend
 echo " -- Going to setup Vault with ETCd for ha -- "
-echo " ansible-playbook vault-etcd.yml -i inventory.yml --limit master-1 "
-echo " ansible-playbook vault-kube.yml -i inventory.yml --limit master-1 "
-echo " ansible-playbook vault-inject-demo.yml -i inventory.yml --limit master-1 "
+echo " ansible-playbook -f 20 vault-etcd.yml -i inventory.yml --limit master-1 "
+echo " ansible-playbook -f 20 vault-kube.yml -i inventory.yml --limit master-1 "
+echo " ansible-playbook -f 20 vault-inject-demo.yml -i inventory.yml --limit master-1 "
 read -r -p "RUN  [y/N] " response
 response=${response,,}
 if [[ "$response" =~ ^(yes|y)$ ]]; then
    cd $CURRENT_DIR/ansible
-   ansible-playbook vault-etcd.yml -i inventory.yml --limit master-1
+   ansible-playbook -f 20 vault-etcd.yml -i inventory.yml --limit master-1
 
-   ansible-playbook vault-kube.yml -i inventory.yml --limit master-1
+   ansible-playbook -f 20 vault-kube.yml -i inventory.yml --limit master-1
 
-   ansible-playbook vault-inject-demo.yml -i inventory.yml --limit master-1
+   ansible-playbook -f 20 vault-inject-demo.yml -i inventory.yml --limit master-1
 fi
 
 

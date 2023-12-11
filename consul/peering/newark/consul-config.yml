@@ -2,8 +2,8 @@
 global:
   enabled: true
   name: consul
-  image: hashicorp/consul:1.16
-  datacenter: dallas
+  image: hashicorp/consul:1.17
+  datacenter: newark
   gossipEncryption:
     autoGenerate: true
   peering:
@@ -39,5 +39,10 @@ ui:
     enabled: false
 connectInject:
   enabled: true
+  cni:
+    enabled: true
+    logLevel: debug
+    cniBinDir: "/opt/cni/bin"
+    cniNetDir: "/etc/cni/net.d"
   metrics:
     defaultEnabled: false
