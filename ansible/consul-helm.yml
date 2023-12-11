@@ -1,5 +1,5 @@
 ---
-- name: Setup consul-k8s on Centos.
+- name: Setup consul-k8s.
   vars_files: vars.yml
   gather_facts: false
   hosts: all
@@ -65,4 +65,4 @@
       dest: ../k8s/{{ region }}_consul_token.txt
 
   - name: patch coredns config map to add consul domain
-    command: python /root/edit_coredns.py
+    command: python3 /root/edit_coredns.py
